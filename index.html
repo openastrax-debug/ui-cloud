@@ -606,9 +606,8 @@
   <div class="toast-notification" id="toast"></div>
 
   <script>
-    // CONFIGURACIÓN DEL SERVIDOR
-    const API_URL = "https://tu-servidor.onrender.com"; 
-    const API_KEY = "TU_CLAVE_SECRETA_DEL_SERVIDOR";   
+  // CONFIGURACIÓN DEL SERVIDOR
+    const API_URL = "https://tu-servidor.onrender.com"; // <-- Cambia esto por tu URL real de Render o Railway
 
     let globalUserName = "";
     let cachedVoices = [];
@@ -774,10 +773,6 @@
         console.warn("Error permisos notificación:", err);
       }
 
-      if (window.AndroidBridge && window.AndroidBridge.startPersistentService) {
-        window.AndroidBridge.startPersistentService();
-      }
-
       transitionToStep3();
     }
 
@@ -826,7 +821,10 @@
       if (!text) return;
 
       input.value = '';
-      sendPayloadToBackend({ query: text });
+      
+      const formData = new FormData();
+      formData.append('transcript', text);
+      sendPayloadToBackend(formData);
     }
 
     // 2. CAPTURAR INTENCIÓN: GRABACIÓN DE AUDIO (MediaRecorder API)
@@ -844,13 +842,11 @@
           };
 
           mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
-            reader.onloadend = () => {
-              const base64Audio = reader.result.split(',')[1];
-              sendPayloadToBackend({ audio: base64Audio, mime_type: audioBlob.type });
-            };
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'command.webm');
+            
+            sendPayloadToBackend(formData);
           };
 
           mediaRecorder.start();
@@ -885,42 +881,29 @@
       recognition.onstart = () => showToast("Escuchando...");
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        sendPayloadToBackend({ query: transcript });
+        const formData = new FormData();
+        formData.append('transcript', transcript);
+        sendPayloadToBackend(formData);
       };
       recognition.onerror = () => showToast("Error al escuchar.");
       recognition.start();
     }
 
-    // 3 & 4 & 5. PETICIÓN HTTP AL BACKEND, ESTADOS VISUALES Y ACCIÓN AGRESIVA
-    async function sendPayloadToBackend(payloadData) {
+    // 3. PETICIÓN HTTP AL BACKEND Y ENVÍO DE METADATA
+    async function sendPayloadToBackend(formData) {
       const loadingStatus = document.getElementById('loadingStatus');
       loadingStatus.classList.add('active'); // Muestra feedback "Pensando..."
 
-      const lowerQuery = (payloadData.query || '').toLowerCase();
-      let targetDevice = 'phone_main';
-
-      if (lowerQuery.includes('tele') || lowerQuery.includes('tv') || lowerQuery.includes('televisión') || lowerQuery.includes('pantalla')) {
-        targetDevice = 'tv_living_room';
-      }
-
-      const bodyPayload = {
-        origin: 'phone_main',
-        target: targetDevice,
+      const sourceDevice = {
         device_id: DEVICE_ID,
-        os: DEVICE_OS,
-        user_name: globalUserName,
-        timestamp: new Date().toISOString(),
-        ...payloadData
+        os: DEVICE_OS
       };
+      formData.append('source_device', JSON.stringify(sourceDevice));
 
       try {
-        const response = await fetch(`${API_URL}/api/ask`, {
+        const response = await fetch(`${API_URL}/api/v1/voice-command`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': API_KEY
-          },
-          body: JSON.stringify(bodyPayload)
+          body: formData // Envío limpio mediante FormData compatible con Multer
         });
 
         loadingStatus.classList.remove('active');
@@ -932,42 +915,40 @@
 
       } catch (err) {
         loadingStatus.classList.remove('active');
-        console.error("Error al conectar con Render:", err);
+        console.error("Error al conectar con el servidor:", err);
         speakResponse("Hubo un error al conectar con Cloud.");
         showToast("Error de conexión con el servidor.");
       }
     }
 
-    // INTERPRETAR LA RESPUESTA Y EJECUTAR ACCIÓN AGRESIVA O NOTIFICACIÓN
+    // INTERPRETAR LA RESPUESTA DEL BACKEND Y EJECUTAR ACCIÓN
     function handleBackendResponse(data) {
-      const responseText = data.response || data.text || "Orden procesada con éxito.";
-      const target = data.target_device || data.target || "phone_main";
-      const deepLink = data.deepLinkUri || data.deep_link || data.uri;
-
-      speakResponse(responseText);
-
-      // ACCIÓN PARA LA TV
-      if (target === 'tv_living_room' || target === 'TV') {
-        showToast("📺 Orden enviada a la Smart TV con éxito");
+      if (!data.success) {
+        showToast("⚠️ No se pudo completar la orden.");
+        speakResponse("Lo siento, hubo un fallo al procesar la orden.");
         return;
       }
 
-      // ACCIÓN AGRESIVA PARA LOCAL_PHONE
-      if (deepLink) {
-        showToast("🚀 Abriendo aplicación...");
+      const routing = data.routing || {};
+      const payload = data.payload || {};
+      const transcript = data.transcript || "";
+
+      speakResponse(`Procesando orden para ${routing.app || 'la aplicación'}`);
+
+      // SI LA ORDEN ES PARA LA TV
+      if (routing.target_device === 'TV') {
+        showToast(`📺 Orden enviada a la TV (${routing.app})`);
+        return;
+      }
+
+      // SI LA ORDEN ES PARA EL MÓVIL (LOCAL_PHONE)
+      if (routing.target_device === 'LOCAL_PHONE' && payload.deepLinkUri) {
+        showToast(`🚀 Abriendo ${routing.app}...`);
         setTimeout(() => {
-          window.location.href = deepLink;
+          window.location.href = payload.deepLinkUri;
         }, 500);
-      } else if (target === 'phone_main' || target === 'LOCAL_PHONE') {
-        // Redirecciones dinámicas por defecto si el backend manda un comando de apertura básico
-        const queryText = (data.query || '').toLowerCase();
-        if (queryText.includes('tiktok')) {
-          window.location.href = "snssdk1180://";
-        } else if (queryText.includes('youtube')) {
-          window.location.href = "vnd.youtube://";
-        } else {
-          showToast(`☁️ ${responseText}`);
-        }
+      } else {
+        showToast(`☁️ Orden ejecutada con éxito.`);
       }
     }
 
