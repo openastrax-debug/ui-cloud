@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Nunito Sans", sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #fafafa;
+      transition: background 0.5s ease;
+    }
+
+    .wrapper {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+    }
+
+    .hero {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      --stripe-color: #fafafa;
+      --stripes: repeating-linear-gradient(
+        100deg,
+        var(--stripe-color) 0%,
+        var(--stripe-color) 7%,
+        transparent 10%,
+        transparent 12%,
+        var(--stripe-color) 16%
+      );
+
+      --rainbow: repeating-linear-gradient(
+        100deg,
+        #60a5fa 10%,
+        #e879f9 15%,
+        #60a5fa 20%,
+        #5eead4 25%,
+        #60a5fa 30%
+      );
+
+      background-image: var(--stripes), var(--rainbow);
+      background-size: 300%, 200%;
+      background-position: 50% 50%, 50% 50%;
+      filter: blur(10px) opacity(80%) saturate(150%) invert(100%);
+      mask-image: radial-gradient(ellipse at 100% 0%, black 40%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at 100% 0%, black 40%, transparent 70%);
+      transition: filter 0.5s ease;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: var(--stripes), var(--rainbow);
+      background-size: 200%, 100%;
+      background-attachment: fixed;
+      mix-blend-mode: difference;
+    }
+
+    /* Contenedor Central */
+    .main-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 580px;
+      padding: 0 20px;
+    }
+
+    .center-animation {
+      pointer-events: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .center-animation img {
+      max-width: 520px;
+      width: 75vw;
+      height: auto;
+      filter: drop-shadow(0 0 35px rgba(96, 165, 250, 0.35));
+    }
+
+    /* Contenedores de Pasos */
+    .step-content {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .step-content.fade-out {
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
+    }
+
+    .step-content.hidden {
+      display: none;
+    }
+
+    /* Efecto Typing y Círculo */
+    .typing-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+      min-height: 48px;
+      margin-bottom: 20px;
+      text-align: center;
+      transition: color 0.5s ease;
+      line-height: 1.4;
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 100px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #0f172a;
+      margin-left: 8px;
+      animation: pulseCursor 0.8s infinite alternate;
+      transition: background-color 0.5s ease;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .typing-cursor.inline-dot {
+      width: 10px;
+      height: 10px;
+    }
+
+    @keyframes pulseCursor {
+      0% {
+        opacity: 0.2;
+        transform: scale(0.8);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    }
+
+    /* Formulario y Botones Glassmorphism */
+    .input-form, .action-buttons {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: none;
+    }
+
+    .input-form.visible, .action-buttons.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .glass-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      max-width: 420px;
+      background: rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 30px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+      padding: 4px 6px 4px 18px;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .glass-input-wrapper:focus-within {
+      background: rgba(0, 0, 0, 0.08);
+      border-color: rgba(96, 165, 250, 0.6);
+      box-shadow: 0 12px 40px 0 rgba(96, 165, 250, 0.2);
+    }
+
+    .glass-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      color: #0f172a;
+      padding: 10px 0;
+    }
+
+    .glass-input::placeholder {
+      color: rgba(15, 23, 42, 0.45);
+      font-weight: 400;
+    }
+
+    .glass-submit-btn {
+      background: rgba(15, 23, 42, 0.9);
+      border: none;
+      outline: none;
+      color: #ffffff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .glass-submit-btn:hover {
+      background: #60a5fa;
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
+    }
+
+    .glass-submit-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Botón Acción Principal Glassmorphism */
+    .glass-action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 360px;
+      padding: 14px 24px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      background: rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 30px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      outline: none;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      text-decoration: none;
+    }
+
+    .glass-action-btn:hover {
+      background: rgba(96, 165, 250, 0.15);
+      border-color: rgba(96, 165, 250, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px 0 rgba(96, 165, 250, 0.2);
+    }
+
+    .glass-action-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Botón Micrófono Glass Redondo para Pedir a Cloud */
+    .glass-mic-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      outline: none;
+      color: #0f172a;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      margin-top: 10px;
+    }
+
+    .glass-mic-btn:hover {
+      background: rgba(96, 165, 250, 0.2);
+      border-color: rgba(96, 165, 250, 0.5);
+      transform: scale(1.08);
+      box-shadow: 0 12px 40px 0 rgba(96, 165, 250, 0.3);
+    }
+
+    .glass-mic-btn.recording {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #ef4444;
+      animation: pulseMic 1.2s infinite;
+    }
+
+    @keyframes pulseMic {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    /* Estado de Carga (Thinking Feedback) */
+    .loading-status {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 15px;
+      font-weight: 700;
+      color: #60a5fa;
+      font-size: 0.95rem;
+    }
+
+    .loading-status.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(96, 165, 250, 0.3);
+      border-radius: 50%;
+      border-top-color: #60a5fa;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Notificación Flotante para TV y Estados */
+    .toast-notification {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.9);
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1000;
+      text-align: center;
+      max-width: 90vw;
+    }
+
+    .toast-notification.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Tema Oscuro */
+    body.dark-theme {
+      background: #0a0a0b;
+    }
+
+    body.dark-theme .hero {
+      --stripe-color: #0a0a0b;
+      filter: blur(10px) opacity(60%) saturate(200%);
+    }
+
+    body.dark-theme .typing-container {
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    body.dark-theme .typing-cursor {
+      background-color: #ffffff;
+    }
+
+    body.dark-theme .glass-input-wrapper,
+    body.dark-theme .glass-action-btn,
+    body.dark-theme .glass-mic-btn {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      color: #ffffff;
+    }
+
+    body.dark-theme .glass-input-wrapper:focus-within {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(96, 165, 250, 0.8);
+      box-shadow: 0 12px 40px 0 rgba(96, 165, 250, 0.3);
+    }
+
+    body.dark-theme .glass-action-btn:hover,
+    body.dark-theme .glass-mic-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(96, 165, 250, 0.6);
+    }
+
+    body.dark-theme .glass-input {
+      color: #ffffff;
+    }
+
+    body.dark-theme .glass-input::placeholder {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    body.dark-theme .glass-submit-btn {
+      background: rgba(255, 255, 255, 0.9);
+      color: #0a0a0b;
+    }
+
+    body.dark-theme .glass-submit-btn:hover {
+      background: #60a5fa;
+      color: #ffffff;
+    }
+
+    /* Botón Superior Glassmorphism */
+    .header-controls {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 100;
+    }
+
+    .glass-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: rgba(15, 23, 42, 0.9);
+      background: rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 30px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      outline: none;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .glass-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+      border-color: rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .glass-btn .icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.5s ease;
+    }
+
+    .glass-btn:hover .icon {
+      transform: rotate(180deg);
+    }
+
+    body.dark-theme .glass-btn {
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    body.dark-theme .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <div class="hero"></div>
+  </div>
+
+  <div class="main-container">
+    <div class="center-animation">
+      <img src="https://i.postimg.cc/Vkq3RwzX/1000017490-removebg-preview-upscaled.png" alt="Cloud Animation">
+    </div>
+
+    <!-- PASO 1: Captura de Nombre -->
+    <div class="step-content" id="step1">
+      <div class="typing-container">
+        <span id="typedTextStep1"></span><span class="typing-cursor inline-dot" id="cursorStep1"></span>
+      </div>
+
+      <form class="input-form" id="nameForm" onsubmit="saveToDatabase(event)">
+        <div class="glass-input-wrapper">
+          <input type="text" id="usernameInput" class="glass-input" placeholder="Tu nombre aquí..." autocomplete="off" required>
+          <button type="submit" class="glass-submit-btn" aria-label="Enviar">
+            <svg viewBox="0 0 24 24">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- PASO 2: Permisos Reales -->
+    <div class="step-content hidden" id="step2">
+      <div class="typing-container">
+        <span id="typedTextStep2"></span><span class="typing-cursor inline-dot" id="cursorStep2"></span>
+      </div>
+
+      <div class="action-buttons" id="permissionButtons">
+        <button class="glass-action-btn" onclick="requestPermissions()">
+          🎙️ Conceder Permisos (Micrófono y Notificaciones)
+        </button>
+      </div>
+    </div>
+
+    <!-- PASO 3: Interacción por Texto y Voz con Cloud -->
+    <div class="step-content hidden" id="step3">
+      <div class="typing-container">
+        <span id="typedTextStep3"></span><span class="typing-cursor inline-dot" id="cursorStep3"></span>
+      </div>
+
+      <!-- Entrada por Texto -->
+      <form class="input-form visible" id="commandForm" onsubmit="handleTextCommand(event)">
+        <div class="glass-input-wrapper">
+          <input type="text" id="commandInput" class="glass-input" placeholder="Escribe 'abre tiktok' o pídemelo..." autocomplete="off">
+          <button type="submit" class="glass-submit-btn" aria-label="Enviar comando">
+            <svg viewBox="0 0 24 24">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </form>
+
+      <!-- Entrada por Voz (MediaRecorder + WebSpeech Fallback) -->
+      <div class="action-buttons visible" id="micButtonWrapper">
+        <button class="glass-mic-btn" id="micBtn" onclick="toggleAudioRecording()" aria-label="Hablar con Cloud">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+            <line x1="8" y1="22" x2="16" y2="22"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Indicador de Carga (Pensando...) -->
+      <div class="loading-status" id="loadingStatus">
+        <div class="spinner"></div>
+        <span>Pensando...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-controls">
+    <button class="glass-btn" id="themeToggle" aria-label="Cambiar Tema">
+      <span class="icon" id="themeIcon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </span>
+      <span id="themeText">Modo Oscuro</span>
+    </button>
+  </div>
+
+  <!-- Toast de Notificaciones -->
+  <div class="toast-notification" id="toast"></div>
+
+  <script>
+    // CONFIGURACIÓN DEL SERVIDOR
+    const API_URL = "https://tu-servidor.onrender.com"; 
+    const API_KEY = "TU_CLAVE_SECRETA_DEL_SERVIDOR";   
+
+    let globalUserName = "";
+    let cachedVoices = [];
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    // 1. GENERAR Y MANTENER EL DEVICE_ID Y S.O.
+    function getDeviceId() {
+      let deviceId = localStorage.getItem('cloud_device_id');
+      if (!deviceId) {
+        deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('cloud_device_id', deviceId);
+      }
+      return deviceId;
+    }
+
+    function getOS() {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      if (/android/i.test(userAgent)) return "android";
+      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return "ios";
+      return "web";
+    }
+
+    const DEVICE_ID = getDeviceId();
+    const DEVICE_OS = getOS();
+
+    // Inicializar Voces
+    function initVoices() {
+      if ('speechSynthesis' in window) {
+        cachedVoices = window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => {
+          cachedVoices = window.speechSynthesis.getVoices();
+        };
+      }
+    }
+    initVoices();
+
+    // Configuración del Tema
+    const themeBtn = document.getElementById('themeToggle');
+    const themeText = document.getElementById('themeText');
+    const themeIcon = document.getElementById('themeIcon');
+
+    const sunIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+    const moonIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+    themeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark-theme');
+      const isDark = document.body.classList.contains('dark-theme');
+
+      if (isDark) {
+        themeText.textContent = 'Modo Claro';
+        themeIcon.innerHTML = sunIcon;
+      } else {
+        themeText.textContent = 'Modo Oscuro';
+        themeIcon.innerHTML = moonIcon;
+      }
+    });
+
+    // Feedback Toast Visual
+    function showToast(message, duration = 3500) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    // Efecto Typing
+    function typeText(targetElement, text, speed, onComplete) {
+      let index = 0;
+      targetElement.textContent = '';
+      
+      function type() {
+        if (index < text.length) {
+          targetElement.textContent += text.charAt(index);
+          index++;
+          setTimeout(type, speed);
+        } else if (onComplete) {
+          onComplete();
+        }
+      }
+      type();
+    }
+
+    // Carga Inicial
+    const textStep1 = "Hola para empezar dime tú nombre 😊";
+    const typedTextStep1 = document.getElementById('typedTextStep1');
+    const nameForm = document.getElementById('nameForm');
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedName = localStorage.getItem('cloud_username');
+      if (savedName) {
+        globalUserName = savedName;
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.add('hidden');
+        const step3 = document.getElementById('step3');
+        step3.classList.remove('hidden');
+
+        const typedTextStep3 = document.getElementById('typedTextStep3');
+        typedTextStep3.textContent = `¡HOLA DE NUEVO, ${globalUserName.toUpperCase()}! 🥳`;
+      } else {
+        setTimeout(() => {
+          typeText(typedTextStep1, textStep1, 45, () => {
+            nameForm.classList.add('visible');
+            document.getElementById('usernameInput').focus();
+          });
+        }, 300);
+      }
+    });
+
+    // Guardar Nombre y Heartbeat
+    function saveToDatabase(event) {
+      event.preventDefault();
+      const userName = document.getElementById('usernameInput').value.trim();
+      if (!userName) return;
+
+      globalUserName = userName;
+      localStorage.setItem('cloud_username', userName);
+
+      fetch(`${API_URL}/api/heartbeat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: userName,
+          device_id: DEVICE_ID,
+          os: DEVICE_OS,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(err => console.warn("Heartbeat warning:", err));
+
+      const step1 = document.getElementById('step1');
+      const step2 = document.getElementById('step2');
+
+      step1.classList.add('fade-out');
+
+      setTimeout(() => {
+        step1.classList.add('hidden');
+        step2.classList.remove('hidden');
+        
+        const textStep2 = `Encantado de conocerte ${userName} 🥹, me darías permiso al micrófono y a las notificaciones para poder estar siempre activo e interactuar contigo`;
+        const typedTextStep2 = document.getElementById('typedTextStep2');
+
+        typeText(typedTextStep2, textStep2, 40, () => {
+          document.getElementById('permissionButtons').classList.add('visible');
+        });
+      }, 500);
+    }
+
+    // Permisos
+    async function requestPermissions() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        console.warn("Permiso de micrófono no concedido:", err);
+      }
+
+      try {
+        if ("Notification" in window) {
+          const perm = await Notification.requestPermission();
+          if (perm === "granted") showPersistentNotification();
+        }
+      } catch (err) {
+        console.warn("Error permisos notificación:", err);
+      }
+
+      if (window.AndroidBridge && window.AndroidBridge.startPersistentService) {
+        window.AndroidBridge.startPersistentService();
+      }
+
+      transitionToStep3();
+    }
+
+    function showPersistentNotification() {
+      const title = "Cloud Asistente";
+      const options = {
+        body: "Cloud está activo y listo para ayudarte en segundo plano ☁️",
+        icon: "https://i.postimg.cc/Vkq3RwzX/1000017490-removebg-preview-upscaled.png",
+        tag: "cloud-persistent-service",
+        renotify: true,
+        requireInteraction: true
+      };
+
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => reg.showNotification(title, options));
+      } else {
+        try {
+          const n = new Notification(title, options);
+          n.onclick = () => window.focus();
+        } catch (e) {}
+      }
+    }
+
+    function transitionToStep3() {
+      const step2 = document.getElementById('step2');
+      const step3 = document.getElementById('step3');
+
+      step2.classList.add('fade-out');
+
+      setTimeout(() => {
+        step2.classList.add('hidden');
+        step3.classList.remove('hidden');
+
+        const textStep3 = `LISTO ${globalUserName.toUpperCase()}, PODEMOS EMPEZAR 🥳, pídeme lo que sea cuando lo necesites`;
+        const typedTextStep3 = document.getElementById('typedTextStep3');
+
+        typeText(typedTextStep3, textStep3, 40, () => {});
+      }, 500);
+    }
+
+    // 2. CAPTURAR INTENCIÓN: MANEJO DE COMANDO DE TEXTO
+    function handleTextCommand(event) {
+      event.preventDefault();
+      const input = document.getElementById('commandInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      sendPayloadToBackend({ query: text });
+    }
+
+    // 2. CAPTURAR INTENCIÓN: GRABACIÓN DE AUDIO (MediaRecorder API)
+    async function toggleAudioRecording() {
+      const micBtn = document.getElementById('micBtn');
+
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) audioChunks.push(event.data);
+          };
+
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+              const base64Audio = reader.result.split(',')[1];
+              sendPayloadToBackend({ audio: base64Audio, mime_type: audioBlob.type });
+            };
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.classList.add('recording');
+        } catch (err) {
+          console.warn("MediaRecorder no disponible, usando Web Speech API como fallback:", err);
+          useWebSpeechFallback();
+        }
+      } else {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+          mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+        isRecording = false;
+        micBtn.classList.remove('recording');
+      }
+    }
+
+    // Fallback de Voz Si MediaRecorder No Está Disponible
+    function useWebSpeechFallback() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast("El reconocimiento de voz no está soportado en este navegador.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'es-ES';
+      recognition.interimResults = false;
+
+      recognition.onstart = () => showToast("Escuchando...");
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        sendPayloadToBackend({ query: transcript });
+      };
+      recognition.onerror = () => showToast("Error al escuchar.");
+      recognition.start();
+    }
+
+    // 3 & 4 & 5. PETICIÓN HTTP AL BACKEND, ESTADOS VISUALES Y ACCIÓN AGRESIVA
+    async function sendPayloadToBackend(payloadData) {
+      const loadingStatus = document.getElementById('loadingStatus');
+      loadingStatus.classList.add('active'); // Muestra feedback "Pensando..."
+
+      const lowerQuery = (payloadData.query || '').toLowerCase();
+      let targetDevice = 'phone_main';
+
+      if (lowerQuery.includes('tele') || lowerQuery.includes('tv') || lowerQuery.includes('televisión') || lowerQuery.includes('pantalla')) {
+        targetDevice = 'tv_living_room';
+      }
+
+      const bodyPayload = {
+        origin: 'phone_main',
+        target: targetDevice,
+        device_id: DEVICE_ID,
+        os: DEVICE_OS,
+        user_name: globalUserName,
+        timestamp: new Date().toISOString(),
+        ...payloadData
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/api/ask`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY
+          },
+          body: JSON.stringify(bodyPayload)
+        });
+
+        loadingStatus.classList.remove('active');
+
+        if (!response.ok) throw new Error("Respuesta fallida del servidor");
+
+        const data = await response.json();
+        handleBackendResponse(data);
+
+      } catch (err) {
+        loadingStatus.classList.remove('active');
+        console.error("Error al conectar con Render:", err);
+        speakResponse("Hubo un error al conectar con Cloud.");
+        showToast("Error de conexión con el servidor.");
+      }
+    }
+
+    // INTERPRETAR LA RESPUESTA Y EJECUTAR ACCIÓN AGRESIVA O NOTIFICACIÓN
+    function handleBackendResponse(data) {
+      const responseText = data.response || data.text || "Orden procesada con éxito.";
+      const target = data.target_device || data.target || "phone_main";
+      const deepLink = data.deepLinkUri || data.deep_link || data.uri;
+
+      speakResponse(responseText);
+
+      // ACCIÓN PARA LA TV
+      if (target === 'tv_living_room' || target === 'TV') {
+        showToast("📺 Orden enviada a la Smart TV con éxito");
+        return;
+      }
+
+      // ACCIÓN AGRESIVA PARA LOCAL_PHONE
+      if (deepLink) {
+        showToast("🚀 Abriendo aplicación...");
+        setTimeout(() => {
+          window.location.href = deepLink;
+        }, 500);
+      } else if (target === 'phone_main' || target === 'LOCAL_PHONE') {
+        // Redirecciones dinámicas por defecto si el backend manda un comando de apertura básico
+        const queryText = (data.query || '').toLowerCase();
+        if (queryText.includes('tiktok')) {
+          window.location.href = "snssdk1180://";
+        } else if (queryText.includes('youtube')) {
+          window.location.href = "vnd.youtube://";
+        } else {
+          showToast(`☁️ ${responseText}`);
+        }
+      }
+    }
+
+    // Síntesis de voz
+    function speakResponse(text) {
+      if (!('speechSynthesis' in window)) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+
+      if (cachedVoices.length === 0) {
+        cachedVoices = window.speechSynthesis.getVoices();
+      }
+
+      const neuralVoice = cachedVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Neural') || v.name.includes('Natural'))) || cachedVoices[0];
+
+      if (neuralVoice) utterance.voice = neuralVoice;
+      utterance.rate = 1.03;
+      utterance.pitch = 1.05;
+
+      window.speechSynthesis.speak(utterance);
+    }
+  </script>
+</body>
+</html>
